@@ -1,15 +1,15 @@
 <?php
 
-use App\Dto\Collections\TransactionCollection;
 use PHPUnit\Framework\TestCase;
+use App\Dto\Collections\TransactionCollection;
 use App\Dto\TransactionDto;
 
 class TransactionCollectionTest extends TestCase
 {
   public function testAddTransaction()
   {
+    $transaction = new TransactionDto('45717360', 100.00, 'EUR');
     $collection = new TransactionCollection();
-    $transaction = new TransactionDto('45717360', 100.00, 'USD');
 
     $collection->addTransaction($transaction);
 
@@ -20,9 +20,9 @@ class TransactionCollectionTest extends TestCase
 
   public function testGetTransactions()
   {
+    $transaction1 = new TransactionDto('45717360', 100.00, 'EUR');
+    $transaction2 = new TransactionDto('516793', 50.00, 'USD');
     $collection = new TransactionCollection();
-    $transaction1 = new TransactionDto('45717360', 100.00, 'USD');
-    $transaction2 = new TransactionDto('516793', 50.00, 'EUR');
 
     $collection->addTransaction($transaction1);
     $collection->addTransaction($transaction2);

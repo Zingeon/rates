@@ -4,45 +4,146 @@ use PHPUnit\Framework\TestCase;
 use App\Providers\NeutrinoApiBinListProvider;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Response;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
+use Dotenv\Dotenv;
 
 class NeutrinoApiBinListProviderTest extends TestCase
 {
+  private const BIN_NUMBER = '45717360';
+
+  private Client $client;
+  private NeutrinoApiBinListProvider $provider;
+
+  protected function setUp(): void
+  {
+    if (file_exists(__DIR__ . '/../.env')) {
+      $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
+      $dotenv->load();
+    }
+
+    $this->client = $this->createMock(Client::class);
+    $this->provider = new NeutrinoApiBinListProvider($this->client);
+
+    $this->mockConfig();
+  }
+
+  private function mockConfig()
+  {
+    $configClass = new class {
+      public static function get($key)
+      {
+        return $_ENV[$key] ?? null;
+      }
+    };
+
+    $reflectionClass = new ReflectionClass('App\Config');
+    $reflectionMethod = $reflectionClass->getMethod('get');
+    $reflectionMethod->setAccessible(true);
+    $reflectionMethod->invoke($configClass, 'NEUTRINO_API_URL');
+  }
+
   public function testGetCountryCode()
   {
-    $mock = new MockHandler([
-      new Response(200, [], json_encode([
-        "country" => "DENMARK",
-        "country-code" => "DK",
-        "card-brand" => "VISA",
-        "ip-city" => "",
-        "ip-blocklists" => [],
-        "ip-country-code3" => "",
-        "is-commercial" => false,
-        "ip-country" => "",
-        "bin-number" => "45717360",
-        "issuer" => "JYSKE BANK A/S",
-        "issuer-website" => "",
-        "ip-region" => "",
-        "valid" => true,
-        "card-type" => "DEBIT",
-        "is-prepaid" => false,
-        "ip-blocklisted" => false,
-        "card-category" => "CLASSIC",
-        "issuer-phone" => "",
-        "currency-code" => "DKK",
-        "ip-matches-bin" => false,
-        "country-code3" => "DNK",
-        "ip-country-code" => ""
-      ]))
-    ]);
-    $handlerStack = HandlerStack::create($mock);
-    $client = new Client(['handler' => $handlerStack]);
+    $binData = ['country-code' => 'DE'];
+    $response = new Response(200, [], json_encode($binData));
 
-    $provider = new NeutrinoApiBinListProvider($client);
-    $countryCode = $provider->getCountryCode('45717360');
+    $this->client->expects($this->once())
+      ->method('request')
+      ->with('GET', 'https://neutrinoapi.net/bin-lookup', [
+        'query' => ['bin-number' => self::BIN_NUMBER],
+        'headers' => [
+          'User-ID' => $_ENV['NEUTRINO_API_USER_ID'],
+          'API-Key' => $_ENV['NEUTRINO_API_KEY']
+        ]
+      ])
+      ->willReturn($response);
 
-    $this->assertEquals('DK', $countryCode);
+    $countryCode = $this->provider->getCountryCode(self::BIN_NUMBER);
+
+    $this->assertEquals('DE', $countryCode);
+  }
+
+  public function testGetCountryCodeWithNoCountryCode()
+  {
+    $binData = [];
+    $response = new Response(200, [], json_encode($binData));
+
+    $this->client->expects($this->once())
+      ->method('request')
+      ->with('GET', 'https://neutrinoapi.net/bin-lookup', [
+        'query' => ['bin-number' => self::BIN_NUMBER],
+        'headers' => [
+          'User-ID' => $_ENV['NEUTRINO_API_USER_ID'],
+          'API-Key' => $_ENV['NEUTRINO_API_KEY']
+        ]
+      ])
+      ->willReturn($response);
+
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage('No country in the response');
+
+    $this->provider->getCountryCode(self::BIN_NUMBER);
+  }
+
+  public function testGetCountryCodeWithErrorResponse()
+  {
+    $response = new Response(400);
+
+    $this->client->expects($this->once())
+      ->method('request')
+      ->with('GET', 'https://neutrinoapi.net/bin-lookup', [
+        'query' => ['bin-number' => self::BIN_NUMBER],
+        'headers' => [
+          'User-ID' => $_ENV['NEUTRINO_API_USER_ID'],
+          'API-Key' => $_ENV['NEUTRINO_API_KEY']
+        ]
+      ])
+      ->willReturn($response);
+
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage('Error retrieving bin data');
+
+    $this->provider->getCountryCode(self::BIN_NUMBER);
+  }
+
+  public function testGetBinData()
+  {
+    $binData = ['country-code' => 'DE'];
+    $response = new Response(200, [], json_encode($binData));
+
+    $this->client->expects($this->once())
+      ->method('request')
+      ->with('GET', 'https://neutrinoapi.net/bin-lookup', [
+        'query' => ['bin-number' => self::BIN_NUMBER],
+        'headers' => [
+          'User-ID' => $_ENV['NEUTRINO_API_USER_ID'],
+          'API-Key' => $_ENV['NEUTRINO_API_KEY']
+        ]
+      ])
+      ->willReturn($response);
+
+    $result = $this->provider->getBinData(self::BIN_NUMBER);
+
+    $this->assertEquals($binData, $result);
+  }
+
+  public function testGetBinDataWithErrorResponse()
+  {
+    $response = new Response(400);
+
+    $this->client->expects($this->once())
+      ->method('request')
+      ->with('GET', 'https://neutrinoapi.net/bin-lookup', [
+        'query' => ['bin-number' => self::BIN_NUMBER],
+        'headers' => [
+          'User-ID' => $_ENV['NEUTRINO_API_USER_ID'],
+          'API-Key' => $_ENV['NEUTRINO_API_KEY']
+        ]
+      ])
+      ->willReturn($response);
+
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage('Error retrieving bin data');
+
+    $this->provider->getBinData(self::BIN_NUMBER);
   }
 }

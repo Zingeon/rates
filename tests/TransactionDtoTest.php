@@ -5,12 +5,36 @@ use App\Dto\TransactionDto;
 
 class TransactionDtoTest extends TestCase
 {
-  public function testTransactionDto()
+  public function testGetBin()
   {
-    $transaction = new TransactionDto('45717360', 100.00, 'USD');
+    $bin = '45717360';
+    $amount = 100.00;
+    $currency = 'EUR';
 
-    $this->assertEquals('45717360', $transaction->getBin());
-    $this->assertEquals(100.00, $transaction->getAmount());
-    $this->assertEquals('USD', $transaction->getCurrency());
+    $transactionDto = new TransactionDto($bin, $amount, $currency);
+
+    $this->assertEquals($bin, $transactionDto->getBin());
+  }
+
+  public function testGetAmount()
+  {
+    $bin = '45717360';
+    $amount = 100.00;
+    $currency = 'EUR';
+
+    $transactionDto = new TransactionDto($bin, $amount, $currency);
+
+    $this->assertEquals($amount, $transactionDto->getAmount());
+  }
+
+  public function testGetCurrency()
+  {
+    $bin = '45717360';
+    $amount = 100.00;
+    $currency = 'EUR';
+
+    $transactionDto = new TransactionDto($bin, $amount, $currency);
+
+    $this->assertEquals($currency, $transactionDto->getCurrency());
   }
 }

@@ -1,6 +1,4 @@
 # Commission Calculator
-
-## Overview
 This project calculates commissions for transactions based on BIN data and exchange rates. The commission rates vary based on whether the transaction's country is part of the European Union (EU) or not.
 
 ## Installation
